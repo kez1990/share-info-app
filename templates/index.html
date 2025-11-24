@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Device & Location Test</title>
+  </head>
+  <body>
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+        font-family: "Inter", system-ui, -apple-system, sans-serif;
+        background: black;
+        color: #111;
+
+        /* Full-screen centering */
+        display: flexbox;
+        justify-content: center;
+        align-items: center;
+
+        height: 100vh;
+        text-align: center; /* center all text */
+      }
+
+      .container {
+        background: pink;
+        width: 420px;
+        padding: 32px;
+        border-radius: 16px;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+        animation: fadeIn 0.4s ease;
+
+        /* In case of additional elements, keep content centered */
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 16px;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: 1.8rem;
+        font-weight: 700;
+        color: #1f2937;
+      }
+
+      p {
+        margin: 0 0 8px 0;
+        font-size: 1rem;
+        color: #4b5563;
+      }
+
+      button {
+        background: #2563eb;
+        color: white;
+        padding: 14px 22px;
+        font-size: 1rem;
+        border: none;
+        border-radius: 12px;
+        cursor: pointer;
+        transition: background 0.2s ease, transform 0.15s ease;
+        font-weight: 600;
+      }
+
+      button:hover {
+        background: #1e4fd3;
+        transform: translateY(-2px);
+      }
+
+      button:active {
+        transform: translateY(0);
+      }
+
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+    </style>
+
+    <div class="container">
+      <h1>Homelab Device Test</h1>
+      <p>Click the button to share device info and location.</p>
+      <button onclick="sendInfo()">Send My Device Info</button>
+    </div>
+
+    <script>
+      async function sendInfo() {
+        const userAgent = navigator.userAgent;
+        const screenInfo = {
+          width: screen.width,
+          height: screen.height,
+          availWidth: screen.availWidth,
+          availHeight: screen.availHeight,
+        };
+
+        // Get location *with user permission*
+        let locationData = null;
+        try {
+          locationData = await new Promise((resolve, reject) => {
+            navigator.geolocation.getCurrentPosition(
+              (pos) =>
+                resolve({
+                  latitude: pos.coords.latitude,
+                  longitude: pos.coords.longitude,
+                  accuracy: pos.coords.accuracy,
+                }),
+              (err) => resolve({ error: err.message })
+            );
+          });
+        } catch (e) {
+          locationData = { error: "Could not retrieve location." };
+        }
+
+        // Send data to Flask
+        await fetch("/collect", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            userAgent: userAgent,
+            screen: screenInfo,
+            location: locationData,
+          }),
+        });
+
+        alert("Data sent successfully!");
+      }
+    </script>
+  </body>
+</html>
